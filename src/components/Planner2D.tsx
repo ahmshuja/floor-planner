@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Stage, Layer, Line, Rect, Group, Text, Transformer } from 'react-konva';
 import Konva from 'konva';
 import { useStore } from '../store/useStore';
 import type { Point, Item } from '../store/useStore';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import polygonClipping from 'polygon-clipping';
+import { detectRooms } from '../utils/roomArea';
 
 const distance = (p1: Point, p2: Point) => Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
 
@@ -38,6 +39,7 @@ export const Planner2D: React.FC = () => {
     mode, activeToolItemType, selectedIds, setSelectedIds, toggleSelection,
     theme, phase, showDimensions
   } = useStore();
+    const rooms = useMemo(() => detectRooms(walls), [walls]);
 
   const [newWallStart, setNewWallStart] = useState<Point | null>(null);
   const [mousePos, setMousePos] = useState<Point | null>(null);
@@ -529,6 +531,22 @@ export const Planner2D: React.FC = () => {
               </React.Fragment>
             );
           })}
+                  {/* Room area labels */}
+        {rooms.map((room, i) => (
+          <Text
+            key={room.id}
+            x={room.centroid.x - 60}
+            y={room.centroid.y - 16}
+            width={120}
+            align="center"
+            text={`Room ${i + 1}\n${(room.areaCm2 / 10000).toFixed(2)} m²`}
+            fontSize={14}
+            fontStyle="bold"
+            fill={strokeColor}
+            fontFamily="Inter"
+            listening={false}
+          />
+        ))}
 
           {newWallStart && mousePos && (mode === 'wall' || mode === 'inner-wall') && (
             <Line points={[newWallStart.x, newWallStart.y, mousePos.x, mousePos.y]} stroke={strokeColor} strokeWidth={mode === 'inner-wall' ? 8 : 15} opacity={0.5} lineCap="round" />

@@ -1,3 +1,4 @@
+import { AreaPanel } from './components/AreaPanel';
 import { useEffect } from 'react';
 import { useStore } from './store/useStore';
 import { Topbar } from './components/Topbar';
@@ -27,6 +28,7 @@ function App() {
       </div>
 
       <ScannerOverlay />
+      <AreaPanel />
     </div>
   );
 }
