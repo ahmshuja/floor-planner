@@ -3,6 +3,11 @@ import { useStore } from '../store/useStore';
 import { FLOORPLAN_PROMPT, parseScanResult } from './floorplanPrompt';
 import { scanFloorplanImageLocal } from './localLlmService';
 
+// Pehla model busy ya unavailable ho to agla try hoga
+const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash'];
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 function fileToGenerativePart(
   file: File
 ): Promise<{ inlineData: { data: string; mimeType: string } }> {
@@ -36,18 +41,32 @@ export async function scanFloorplanImage(file: File) {
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    generationConfig: { responseMimeType: 'application/json' },
-  });
+  const imagePart = await fileToGenerativePart(file);
 
-  try {
-    const imagePart = await fileToGenerativePart(file);
-    const result = await model.generateContent([FLOORPLAN_PROMPT, imagePart]);
-    const responseText = result.response.text();
-    return parseScanResult(responseText);
-  } catch (error) {
-    console.error('Gemini Scan Error:', error);
-    throw error;
+  let lastError: unknown;
+
+  for (const modelName of GEMINI_MODELS) {
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: { responseMimeType: 'application/json' },
+    });
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const result = await model.generateContent([FLOORPLAN_PROMPT, imagePart]);
+        return parseScanResult(result.response.text());
+      } catch (error) {
+        lastError = error;
+        const msg = String((error as Error)?.message ?? error);
+        console.error(`Gemini Scan Error (${modelName}, try ${attempt}):`, error);
+
+        if (msg.includes('404')) break; // model nahi mila, agla model try karo
+        const busy = msg.includes('503') || msg.includes('429');
+        if (!busy) throw error; // koi aur error ho to turant dikhao
+        await sleep(2000 * attempt); // 2s, 4s, 6s ruk ke retry
+      }
+    }
   }
+
+  throw lastError;
 }
