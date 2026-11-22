@@ -1,3 +1,13 @@
+# Floor Planner
+
+> Based on [Ahmadkalims/floor-planner](https://github.com/Ahmadkalims/floor-planner).
+
+## My contributions
+- Room area measurement (automatic room detection from walls, area labels on canvas, area panel in m² / sq ft)
+- Local LLM support for floorplan scanning using Ollama (qwen2.5vl), alongside Gemini
+- Gemini API key setup via environment variables
+
+---
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
